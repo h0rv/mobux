@@ -9,6 +9,7 @@ Termux runs the tools. tmux keeps them alive. Mobux provides navigation.
 In Termux on Android 9 or newer:
 
 ```sh
+pkg update
 pkg install tmux ripgrep curl jq tar coreutils
 curl -fLo install-mobux.sh https://raw.githubusercontent.com/h0rv/mobux/main/scripts/install-termux.sh
 bash install-mobux.sh

@@ -106,7 +106,7 @@ Gruvbox Material Dark, Gruvbox Material Light, and One Dark Pro are also include
 
 ## App switching and recovery
 
-Mobux needs tmux 3.4 or newer for the wide Home and Apps status controls. Check with `tmux -V`. Without it, apps run in the foreground and cannot be switched persistently. `MOBUX_SESSIONS=foreground` selects that mode explicitly.
+Mobux needs tmux 3.6 or newer for reliable exit handling and the wide Home and Apps status controls. Check with `tmux -V`. Some older Linux builds lose exit notifications because of the [libutempter bug fixed upstream](https://github.com/tmux/tmux/commit/fa5f3cef3d651b0eb9abfa77fc37ccade81679b5). Mobux does not accept those versions. Without it, apps run in the foreground and cannot be switched persistently. `MOBUX_SESSIONS=foreground` selects that mode explicitly.
 
 An exited app requires Restart. Stop requires confirmation. Removing an app from the workspace registry does not stop its process.
 
@@ -125,7 +125,7 @@ Add catalog entries to the workspace before opening them. Confirmed Termux packa
 
 Definitions are in `catalog/apps.json`. `termux_package` names an audited Termux package. `requires` lists other executable commands an app needs. Mobux checks those commands before launch and offers a known package recipe when available. The package manager handles library dependencies. Mobux does not enable extra repositories automatically.
 
-Core runtime tools are tmux 3.4 or newer, ripgrep for content search, and coreutils for process launch. The Termux installer instructions include them. No optional editor or coding agent is bundled.
+Core runtime tools are tmux 3.6 or newer, ripgrep for content search, and coreutils for process launch. The Termux installer instructions include them. No optional editor or coding agent is bundled.
 
 GitHub sign-in is separate. Run `gh auth login` in the GitHub shell. Mobux does not save GitHub tokens or automatically publish or merge changes.
 

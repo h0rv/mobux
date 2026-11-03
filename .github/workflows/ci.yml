@@ -19,7 +19,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install test dependencies
-        run: sudo apt-get update && sudo apt-get install -y tmux ripgrep expect shellcheck
+        run: sudo apt-get update && sudo apt-get install -y ripgrep expect shellcheck bison pkg-config libevent-dev libncurses-dev libutempter-dev
+      # Ubuntu 24.04's tmux 3.4 has the libutempter SIGCHLD race fixed in 3.6.
+      # Test our minimum supported version with libutempter enabled.
+      - name: Build minimum supported tmux
+        run: |
+          work="$RUNNER_TEMP/tmux-source"
+          prefix="$RUNNER_TEMP/mobux-tmux"
+          mkdir -p "$work"
+          cd "$work"
+          curl -fL https://github.com/tmux/tmux/releases/download/3.6/tmux-3.6.tar.gz -o tmux.tar.gz
+          echo '136db80cfbfba617a103401f52874e7c64927986b65b1b700350b6058ad69607  tmux.tar.gz' | sha256sum -c -
+          tar -xzf tmux.tar.gz
+          cd tmux-3.6
+          ./configure --prefix="$prefix" --enable-utempter
+          make -j2
+          make install
+          echo "$prefix/bin" >> "$GITHUB_PATH"
       - name: Rust toolchain
         run: rustup toolchain install stable --profile minimal --component clippy --component rustfmt && rustup default stable
       - uses: Swatinem/rust-cache@v2

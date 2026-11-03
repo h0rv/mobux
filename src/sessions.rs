@@ -377,7 +377,7 @@ impl Backend {
 
     fn create_named(&self, spec: LaunchSpec, id: SessionId) -> Result<ManagedSession, String> {
         if !Self::available() {
-            return Err("Mobux requires tmux 3.4 or newer for touch status ranges.".into());
+            return Err("Mobux requires tmux 3.6 or newer for reliable exit handling.".into());
         }
         let encoded = STANDARD.encode(
             serde_json::to_vec(&spec).map_err(|error| format!("Encode launch spec: {error}"))?,
@@ -546,7 +546,7 @@ fn supported_version(value: &str) -> bool {
     };
     let minor: String = minor.chars().take_while(char::is_ascii_digit).collect();
     match (major.parse::<u32>(), minor.parse::<u32>()) {
-        (Ok(major), Ok(minor)) => (major, minor) >= (3, 4),
+        (Ok(major), Ok(minor)) => (major, minor) >= (3, 6),
         _ => false,
     }
 }
@@ -615,7 +615,11 @@ mod tests {
     impl TestServer {
         fn new() -> Option<Self> {
             if !Backend::available() {
-                eprintln!("SKIP tmux integration: tmux >= 3.4 required, outside TMUX");
+                assert!(
+                    std::env::var_os("CI").is_none(),
+                    "CI requires tmux >= 3.6, outside TMUX"
+                );
+                eprintln!("SKIP tmux integration: tmux >= 3.6 required, outside TMUX");
                 return None;
             }
             let socket = format!(
@@ -762,7 +766,9 @@ mod tests {
             assert!(serde_json::from_value::<SessionId>(serde_json::json!(bad)).is_err());
         }
         assert!(!supported_version("tmux 3.3a\n"));
-        assert!(supported_version("tmux 3.4a\n"));
+        assert!(!supported_version("tmux 3.4a\n"));
+        assert!(!supported_version("tmux 3.5a\n"));
+        assert!(supported_version("tmux 3.6\n"));
         assert!(supported_version("tmux 3.8"));
         assert!(supported_version("tmux 4.0"));
         assert!(!supported_version("tmux 3.2a"));
