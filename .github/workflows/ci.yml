@@ -144,3 +144,20 @@ jobs:
             --target "$COMMIT" --prerelease \
             --title "Experimental snapshot $RUN_NUMBER" \
             --notes "Android 9+, Linux, and macOS binaries for ARM64 and x86_64. Android builds are cross-compiled and not yet verified on a physical phone. Commit: $COMMIT. See SETUP.md before installing."
+      # Delete old snapshots only after the replacement was published.
+      # Preserve source tags, stable releases, drafts, and any newer snapshot.
+      - name: Keep only the newest snapshot release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_NUMBER: ${{ github.run_number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tags=$(gh api --paginate 'repos/{owner}/{repo}/releases?per_page=100' \
+            --jq '.[] | select(.draft == false and .prerelease == true) | .tag_name')
+          while IFS= read -r tag; do
+            if [[ $tag =~ ^snapshot-([1-9][0-9]*)$ ]] && (( BASH_REMATCH[1] < RUN_NUMBER )); then
+              gh release delete "$tag" --yes
+            fi
+          done <<< "$tags"

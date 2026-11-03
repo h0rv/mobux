@@ -6,7 +6,9 @@ Termux runs the tools. tmux keeps them alive. Mobux provides navigation.
 
 ## Install
 
-In Termux on Android 9 or newer:
+Install Termux from [F-Droid](https://f-droid.org/en/packages/com.termux/) first. The [Google Play version](https://play.google.com/store/apps/details?id=com.termux) is experimental. See [Termux's installation guide](https://github.com/termux/termux-app#installation) for differences. Keep Termux and its plugins from the same source.
+
+Then, in Termux on Android 9 or newer:
 
 ```sh
 pkg update
@@ -19,6 +21,11 @@ mobux
 The installer downloads a prebuilt binary and verifies its checksum. Phone support is experimental.
 
 [Setup and keyboard guide](SETUP.md) · [Downloads](https://github.com/h0rv/mobux/releases)
+
+## Recommended software
+
+- Try [HeliBoard from F-Droid](https://f-droid.org/en/packages/helium314.keyboard/) for typing. Leave out its optional closed-source glide library for a fully FOSS setup. Use [Termux's extra-key row](docs/KEYBOARD.md) for arrows and Ctrl.
+- Use micro for simple editing. It is the default for new Mobux configurations, with installation offered for confirmation. Neovim is also supported.
 
 ## Preview
 
