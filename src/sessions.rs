@@ -647,10 +647,15 @@ mod tests {
             let deadline = Instant::now() + Duration::from_secs(5);
             loop {
                 let session = self.backend.owned(id).unwrap();
-                if matches!(session.status, SessionStatus::Exited(_)) {
+                // These fixtures exit with numeric codes. tmux can publish
+                // pane_dead before its child-status notification is processed.
+                if matches!(session.status, SessionStatus::Exited(Some(_))) {
                     return session;
                 }
-                assert!(Instant::now() < deadline, "program did not exit");
+                assert!(
+                    Instant::now() < deadline,
+                    "program exit code was not published"
+                );
                 std::thread::sleep(Duration::from_millis(10));
             }
         }
