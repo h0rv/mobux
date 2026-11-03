@@ -53,6 +53,56 @@ struct JsonPalette {
 }
 
 impl Scheme {
+    /// HeliBoard 4.2 SaveThoseColors / Kotlin Pair JSON, not an Android backup.
+    pub fn heliboard_theme(&self) -> String {
+        let colors: serde_json::Map<String, serde_json::Value> = [
+            ("background", 0),
+            ("keys", 1),
+            ("functional_keys", 2),
+            ("spacebar", 1),
+            ("text", 5),
+            ("hint_text", 5),
+            ("suggestion_text", 5),
+            ("spacebar_text", 5),
+            ("accent", 13),
+            ("gesture", 13),
+        ]
+        .into_iter()
+        .map(|(key, index)| {
+            let c = self.colors[index];
+            let argb = i32::from_be_bytes([255, c.r, c.g, c.b]);
+            (
+                key.to_owned(),
+                serde_json::json!({"first":argb,"second":false}),
+            )
+        })
+        .collect();
+        serde_json::to_string_pretty(&serde_json::json!({
+            "name":format!("Mobux {}",self.name),"moreColors":0,"colors":colors
+        }))
+        .expect("serializing a JSON value")
+    }
+
+    /// Termux's standard 16 ANSI slots, plus foreground, background and cursor.
+    pub fn termux_colors(&self) -> String {
+        use std::fmt::Write as _;
+        let mut text = String::new();
+        let mut line = |key: &str, index: usize| {
+            let c = self.colors[index];
+            writeln!(text, "{key}=#{:02x}{:02x}{:02x}", c.r, c.g, c.b).expect("writing to String");
+        };
+        line("background", 0);
+        line("foreground", 5);
+        line("cursor", 5);
+        for (slot, index) in [0, 8, 11, 10, 13, 14, 12, 5, 3, 8, 11, 10, 13, 14, 12, 7]
+            .into_iter()
+            .enumerate()
+        {
+            line(&format!("color{slot}"), index);
+        }
+        text
+    }
+
     pub fn parse_json(json: &str) -> Result<Self, String> {
         let raw: JsonScheme =
             serde_json::from_str(json).map_err(|error| format!("Invalid theme JSON: {error}"))?;
@@ -326,6 +376,34 @@ mod tests {
         }
         assert_eq!(Palette::default(), Palette::GruvboxMaterialDark);
         assert!(Palette::from_name_or_file("missing-theme-that-does-not-exist.json").is_err());
+    }
+
+    #[test]
+    fn theme_exports_have_complete_slots_and_signed_opaque_heliboard_colors() {
+        for preset in Palette::presets() {
+            let scheme = preset.scheme();
+            let termux = scheme.termux_colors();
+            assert_eq!(termux.lines().count(), 19);
+            assert!(termux.lines().all(|line| line
+                .split_once("=#")
+                .is_some_and(
+                    |(_, hex)| hex.len() == 6 && hex.bytes().all(|c| c.is_ascii_hexdigit())
+                )));
+            let json: serde_json::Value = serde_json::from_str(&scheme.heliboard_theme()).unwrap();
+            assert_eq!(json["moreColors"], 0);
+            let colors = json["colors"].as_object().unwrap();
+            assert_eq!(colors.len(), 10);
+            for value in colors.values() {
+                assert_eq!(value["second"], false);
+                let color = i32::try_from(value["first"].as_i64().unwrap()).unwrap();
+                assert_eq!(color.to_be_bytes()[0], 255);
+            }
+            let c = scheme.colors[0];
+            assert_eq!(
+                colors["background"]["first"],
+                i32::from_be_bytes([255, c.r, c.g, c.b])
+            );
+        }
     }
 
     #[test]

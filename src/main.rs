@@ -39,6 +39,8 @@ enum CommandLine {
     Run(Option<std::path::PathBuf>),
     Help,
     Version,
+    TermuxTheme,
+    HeliboardTheme,
 }
 
 fn parse_args(args: &[std::ffi::OsString]) -> Result<CommandLine, String> {
@@ -46,6 +48,8 @@ fn parse_args(args: &[std::ffi::OsString]) -> Result<CommandLine, String> {
         [] => Ok(CommandLine::Run(None)),
         [arg] if arg == "--help" || arg == "-h" => Ok(CommandLine::Help),
         [arg] if arg == "--version" || arg == "-V" => Ok(CommandLine::Version),
+        [arg] if arg == "--print-termux-theme" => Ok(CommandLine::TermuxTheme),
+        [arg] if arg == "--print-heliboard-theme" => Ok(CommandLine::HeliboardTheme),
         [arg] if !arg.as_encoded_bytes().starts_with(b"-") => {
             Ok(CommandLine::Run(Some(arg.into())))
         }
@@ -59,11 +63,33 @@ fn main() -> io::Result<()> {
         .map_err(io::Error::other)?
     {
         CommandLine::Help => {
-            println!("Mobux: a touch-first terminal workspace\n\nUsage: mobux [DIRECTORY]\n       mobux --help\n       mobux --version\n\nTap Project to browse folders. Open apps in that folder.\nLive sessions use tmux 3.4+ with Home and Apps touch targets.\nPreferences are saved under ~/.config/mobux (or XDG_CONFIG_HOME).\n\nMOBUX_THEME       Preset name or Base16 JSON file\nMOBUX_GRAPHICS    kitty or cells\nMOBUX_SESSIONS    foreground disables persistent sessions\nMOBUX_CONFIG_DIR  Absolute configuration directory");
+            println!("Mobux: a touch-first terminal workspace\n\nUsage: mobux [DIRECTORY]\n       mobux --help\n       mobux --version\n\nTap Project to browse folders. Open apps in that folder.\nLive sessions use tmux 3.6+ with Home and Apps touch targets.\nUse --print-termux-theme or --print-heliboard-theme to export colors without changing files.\nPreferences are saved under ~/.config/mobux (or XDG_CONFIG_HOME).\n\nMOBUX_THEME       Preset name or Base16 JSON file\nMOBUX_GRAPHICS    kitty or cells\nMOBUX_SESSIONS    foreground disables persistent sessions\nMOBUX_CONFIG_DIR  Absolute configuration directory");
             return Ok(());
         }
         CommandLine::Version => {
             println!("Mobux {}", env!("CARGO_PKG_VERSION"));
+            return Ok(());
+        }
+        format @ (CommandLine::TermuxTheme | CommandLine::HeliboardTheme) => {
+            let config = mobux::config::Store::discover()
+                .and_then(|store| store.load())
+                .map_err(io::Error::other)?;
+            let palette = match std::env::var("MOBUX_THEME") {
+                Ok(name) => {
+                    mobux::palette::Palette::from_name_or_file(&name).map_err(io::Error::other)?
+                }
+                Err(std::env::VarError::NotPresent) => config.settings.palette,
+                Err(err) => return Err(io::Error::other(err)),
+            };
+            let scheme = palette.scheme();
+            print!(
+                "{}",
+                if format == CommandLine::TermuxTheme {
+                    scheme.termux_colors()
+                } else {
+                    scheme.heliboard_theme()
+                }
+            );
             return Ok(());
         }
         CommandLine::Run(project) => project,
@@ -522,7 +548,17 @@ fn on_key(app: &mut State, code: KeyCode, modifiers: KeyModifiers) -> Action {
         return Action::Quit;
     }
     match code {
-        KeyCode::Char(ch) => app.on_char(ch),
+        KeyCode::Char(ch)
+            if !modifiers.intersects(
+                KeyModifiers::CONTROL
+                    | KeyModifiers::ALT
+                    | KeyModifiers::SUPER
+                    | KeyModifiers::HYPER
+                    | KeyModifiers::META,
+            ) =>
+        {
+            app.on_char(ch)
+        }
         KeyCode::Backspace => {
             app.on_backspace();
             Action::None
@@ -627,6 +663,20 @@ mod tests {
     use mobux::theme::TypeSize;
     use ratatui::backend::TestBackend;
     use ratatui::layout::Rect;
+
+    #[test]
+    fn modified_letters_do_not_trigger_vim_navigation_or_type_queries() {
+        let mut state = State::new();
+        state.vim_keys = true;
+        state.screen = Screen::Store;
+        on_key(&mut state, KeyCode::Char('j'), KeyModifiers::CONTROL);
+        assert_eq!(state.store_cursor, 0);
+        on_key(&mut state, KeyCode::Char('j'), KeyModifiers::NONE);
+        assert_eq!(state.store_cursor, 1);
+        state.screen = Screen::Search;
+        on_key(&mut state, KeyCode::Char('h'), KeyModifiers::ALT);
+        assert!(state.query.is_empty());
+    }
 
     #[test]
     fn cli_project_paths_are_literal_and_help_does_not_require_a_terminal() {

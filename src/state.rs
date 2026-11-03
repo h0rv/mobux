@@ -68,7 +68,7 @@ pub struct Node {
 }
 
 pub use crate::catalog::{CatalogItem, CATALOG};
-pub const SETTINGS_COUNT: usize = 7;
+pub const SETTINGS_COUNT: usize = 8;
 
 #[derive(Clone, Copy, Debug)]
 pub struct HomeIcon {
@@ -211,6 +211,7 @@ pub struct State {
     pub surface_style: SurfaceStyle,
     pub wallpaper: bool,
     pub preferred_editor: EditorChoice,
+    pub vim_keys: bool,
     pub metrics: Metrics,
     pub sessions: Vec<Session>,
     pub live_sessions: Vec<ManagedSession>,
@@ -266,6 +267,7 @@ impl State {
             surface_style: SurfaceStyle::Rounded,
             wallpaper: true,
             preferred_editor: EditorChoice::default(),
+            vim_keys: false,
             metrics: Metrics::default(),
             sessions: Vec::new(),
             live_sessions: Vec::new(),
@@ -291,6 +293,7 @@ impl State {
         self.wallpaper = settings.wallpaper;
         self.palette = settings.palette;
         self.preferred_editor = settings.editor;
+        self.vim_keys = settings.vim_keys;
         self.sessions = config
             .history
             .into_iter()
@@ -314,6 +317,7 @@ impl State {
                 wallpaper: self.wallpaper,
                 palette: self.palette.clone(),
                 editor: self.preferred_editor,
+                vim_keys: self.vim_keys,
             },
             history: self
                 .sessions
@@ -756,6 +760,37 @@ impl State {
             }
             return Action::None;
         }
+        if self.vim_keys
+            && matches!(
+                self.screen,
+                Screen::Files | Screen::Store | Screen::Settings | Screen::Recents
+            )
+        {
+            match ch {
+                'j' => {
+                    self.on_down();
+                    return Action::None;
+                }
+                'k' => {
+                    self.on_up();
+                    return Action::None;
+                }
+                'h' if self.screen == Screen::Settings => {
+                    self.on_left();
+                    return Action::None;
+                }
+                'h' => {
+                    self.back();
+                    return Action::None;
+                }
+                'l' if self.screen == Screen::Settings => {
+                    self.on_right();
+                    return Action::None;
+                }
+                'l' => return self.on_enter(),
+                _ => {}
+            }
+        }
         if self.screen == Screen::Shell {
             return Action::None;
         }
@@ -950,6 +985,7 @@ impl State {
             4 => self.wallpaper = !self.wallpaper,
             5 => self.palette.step(dir),
             6 => self.preferred_editor.step(dir),
+            7 => self.vim_keys = !self.vim_keys,
             _ => {}
         }
     }
@@ -1640,6 +1676,26 @@ mod directory_tests {
     }
 
     #[test]
+    fn vim_navigation_opens_folders_and_returns_to_parent_without_consuming_filter_text() {
+        let dir = TestDir::new();
+        let child = dir.0.join("child");
+        fs::create_dir(&child).unwrap();
+        let mut state = browsing(&dir.0);
+        state.vim_keys = true;
+        state.on_char('j');
+        state.on_char('l');
+        assert_eq!(state.cwd, child);
+        state.on_char('h');
+        assert_eq!(state.cwd, dir.0);
+        state.on_char('/');
+        assert!(state.files_input_focused);
+        for ch in "hjkl".chars() {
+            state.on_char(ch);
+        }
+        assert_eq!(state.query, "hjkl");
+    }
+
+    #[test]
     fn changing_directory_commits_the_listing_and_resets_selection() {
         let dir = TestDir::new();
         let child = dir.0.join("folder with spaces");
@@ -1888,6 +1944,46 @@ mod tests {
         state.go_home();
         state.on_char('/');
         assert_eq!(state.screen, Screen::Search);
+    }
+
+    #[test]
+    fn vim_keys_are_optional_persisted_and_do_not_capture_text_or_confirmations() {
+        let mut state = State::new();
+        state.screen = Screen::Store;
+        state.on_char('j');
+        assert_eq!(state.store_cursor, 0);
+        state.vim_keys = true;
+        state.on_char('j');
+        assert_eq!(state.store_cursor, 1);
+        state.on_char('k');
+        assert_eq!(state.store_cursor, 0);
+        let config = state.saved_config();
+        let mut restored = State::new();
+        restored.restore_config(config);
+        assert!(restored.vim_keys);
+        state.screen = Screen::Files;
+        state.files_input_focused = true;
+        for ch in "hjkl/".chars() {
+            state.on_char(ch);
+        }
+        assert_eq!(state.query, "hjkl/");
+        state.screen = Screen::Search;
+        state.on_char('j');
+        assert_eq!(state.query, "hjkl/j");
+        state.screen = Screen::Recents;
+        let id: SessionId = format!("mobux-{}", uuid::Uuid::new_v4()).parse().unwrap();
+        state.pending_stop = Some(id.clone());
+        state.on_char('j');
+        state.on_char('l');
+        assert_eq!(state.session_cursor, 0);
+        assert_eq!(state.pending_stop, Some(id));
+        state.pending_stop = None;
+        state.screen = Screen::Settings;
+        state.settings_cursor = 7;
+        state.on_char('l');
+        assert!(!state.vim_keys);
+        state.on_enter();
+        assert!(state.vim_keys);
     }
 
     #[test]

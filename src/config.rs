@@ -76,6 +76,7 @@ pub struct Settings {
     pub wallpaper: bool,
     pub palette: Palette,
     pub editor: EditorChoice,
+    pub vim_keys: bool,
 }
 
 impl Default for Settings {
@@ -88,6 +89,7 @@ impl Default for Settings {
             wallpaper: true,
             palette: Palette::default(),
             editor: EditorChoice::default(),
+            vim_keys: false,
         }
     }
 }
@@ -476,6 +478,7 @@ mod tests {
                                         wallpaper,
                                         palette: palette.clone(),
                                         editor,
+                                        vim_keys: true,
                                     };
                                     let bytes = serde_json::to_vec(&config).unwrap();
                                     assert_eq!(

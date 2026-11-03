@@ -24,7 +24,7 @@ The installer downloads a prebuilt binary and verifies its checksum. Phone suppo
 
 ## Recommended software
 
-- Try [HeliBoard from F-Droid](https://f-droid.org/en/packages/helium314.keyboard/) for typing. Leave out its optional closed-source glide library for a fully FOSS setup. Use [Termux's extra-key row](docs/KEYBOARD.md) for arrows and Ctrl.
+- Try [HeliBoard from F-Droid](https://f-droid.org/en/packages/helium314.keyboard/) for typing. Leave out its optional closed-source glide library for a fully FOSS setup. Use the [Vim setup guide](docs/KEYBOARD.md) for Esc, arrows, and matching themes. Mobux also has optional Vim keys in Settings.
 - Use micro for simple editing. It is the default for new Mobux configurations, with installation offered for confirmation. Neovim is also supported.
 
 ## Preview

@@ -48,7 +48,8 @@ jobs:
           expect tests/pty-sessions.exp
           expect tests/pty-install.exp
           expect tests/pty-files.exp
-          shellcheck scripts/*.sh
+          bash tests/setup-termux-vim.sh
+          shellcheck scripts/*.sh tests/setup-termux-vim.sh
 
   android:
     runs-on: ubuntu-24.04

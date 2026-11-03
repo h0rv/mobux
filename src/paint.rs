@@ -1155,6 +1155,7 @@ fn paint_settings(buf: &mut Canvas<'_>, state: &State, theme: &Theme) {
         ),
         ("Theme", state.palette.label()),
         ("Editor", state.preferred_editor.label()),
+        ("Vim keys", if state.vim_keys { "On" } else { "Off" }),
     ];
     let visible = slot_count(sheet.height, 1, 1, state.metrics.row_h);
     for (offset, row) in rows

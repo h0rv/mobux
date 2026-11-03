@@ -55,6 +55,10 @@ The public repository is `h0rv/mobux`. GitHub Actions checks Linux and publishes
 
 `test-ui` requires tmux, ripgrep, and Expect. It covers nested tree expansion, fuzzy filtering, focused input, and content search as well as app switching and confirmed installation. Its servers, files, and fake package manager are private test fixtures. Never point tests at the default tmux socket. Include a native supported-terminal check after visual work. Passing unit tests does not prove that a layout looks good.
 
+## Keyboard setup
+
+Vim keys are optional and off by default. Keep text fields literal and confirmations guarded. Theme exports must not mutate settings or start the TUI. The Termux setup helper asks for confirmation, preserves unrelated properties, and backs up replaced files. HeliBoard themes use the 4.2 SaveThoseColors JSON format, not its private settings or backup archive. Do not claim phone verification from schema tests.
+
 ## Small follow-ups
 
 Saved commands may be useful as explicit project-scoped entries with review before execution. Do not copy shell history automatically or add an LLM command-generation subsystem. Prefer optional existing tools when they solve the task.

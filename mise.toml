@@ -33,7 +33,7 @@ outputs = ["shots/home-mobile.png", "shots/home-desktop.png", "shots/home-cells-
 
 [tasks.test-ui]
 description = "Verify touch session switching through a real PTY (requires tmux, rg, and expect)"
-run = "cargo build --bin mobux && expect tests/pty-sessions.exp && expect tests/pty-install.exp && expect tests/pty-files.exp"
+run = "cargo build --bin mobux && expect tests/pty-sessions.exp && expect tests/pty-install.exp && expect tests/pty-files.exp && bash tests/setup-termux-vim.sh"
 
 [tasks.check]
 description = "Format check, clippy, tests, and home screenshots"
