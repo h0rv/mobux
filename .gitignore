@@ -1,0 +1,10 @@
+/target/
+/dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+# Development-machine window captures stay local. Generated fixtures are public.
+/shots/live/*.png
+/shots/live/*.jpg
+/shots/live/*.webp

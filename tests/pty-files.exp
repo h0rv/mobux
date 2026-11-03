@@ -1,0 +1,58 @@
+#!/usr/bin/expect -f
+# Real browser input in an isolated project. No editors or installers are launched.
+set timeout 12
+log_user 0
+set root [file join /tmp "mobux-files-test-[pid]"]
+set project [file join $root project]
+file mkdir [file join $project src deep]
+set f [open [file join $project src deep needle.rs] w]
+puts $f {unique_content_marker}
+close $f
+set binary [file normalize [file join [file dirname [info script]] .. target debug mobux]]
+log_file -a -noappend "$root.log"
+proc await {pattern} {
+    expect {
+        -exact $pattern {return}
+        timeout {error "Timed out waiting for $pattern"}
+        eof {error "Exited waiting for $pattern"}
+    }
+}
+proc click {column row} {send -- [format "\033\[<0;%d;%dM\033\[<0;%d;%dm" $column $row $column $row]}
+set failed [catch {
+    spawn -noecho sh -c {stty rows 48 columns 40; exec "$@"} sh env -u TMUX TERM=xterm-256color MOBUX_GRAPHICS=cells MOBUX_CONFIG_DIR=$root/config XDG_CACHE_HOME=$root/cache MOBUX_SESSION_SOCKET=mobux-files-test-[pid] $binary $project
+    await "Live sessions"
+    click 30 26
+    await "Parent folder"
+    click 8 16
+    await "deep"
+    click 10 18
+    await "needle.rs"
+    click 10 7
+    send -- "q"
+    await "No matches"
+    send -- "\033"
+    await "Tree"
+    click 10 7
+    send -- "needle"
+    await "src/deep/needle.rs"
+    send -- "\033"
+    await "Tree"
+    click 27 11
+    await "Type a phrase, then Find"
+    send -- "unique_content_marker"
+    click 31 7
+    await "src/deep/needle.rs"
+    send -- "\033"
+    await "Tree"
+    send -- "q"
+    expect eof
+    set result [wait]
+    if {[lindex $result 3] != 0} {error "Mobux failed: $result"}
+    puts "PASS: nested tree expansion, focused q, fuzzy filtering, filter clearing, and background content search."
+} message]
+if {$failed} {puts stderr "FAIL: $message\nPTY log: $root.log"}
+catch {exec tmux -L mobux-files-test-[pid] kill-server}
+catch {close}
+catch {wait}
+file delete -force $root
+exit $failed

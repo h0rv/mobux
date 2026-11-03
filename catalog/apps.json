@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "apps": [
+    {
+      "id": "opencode",
+      "kind": "agent",
+      "label": "OpenCode",
+      "bin": "opencode",
+      "blurb": "Coding agent",
+      "homepage": "https://opencode.ai",
+      "icon": "opencode",
+      "mobile_notes": "Candidate. Needs a phone review for scrolling, input, and approval prompts."
+    },
+    {
+      "id": "herdr",
+      "kind": "agent_manager",
+      "label": "Herdr",
+      "bin": "herdr",
+      "blurb": "Agent manager",
+      "homepage": "https://herdr.dev/tui/",
+      "icon": "terminal",
+      "mobile_notes": "Official installer rejects native Termux/Android. Use a supported Linux host over SSH. Mouse-first panes and persistent agents are documented upstream; touchscreen use is unverified."
+    },
+    {
+      "id": "hunk",
+      "label": "Hunk",
+      "bin": "hunk",
+      "args": [
+        "diff"
+      ],
+      "blurb": "Review code changes",
+      "homepage": "https://hunk.dev",
+      "icon": "terminal",
+      "mobile_notes": "Upstream documents mouse navigation and unified diffs in narrow terminals. Prebuilt targets do not include Android. Native Termux and phone touch targets remain unverified."
+    },
+    {
+      "id": "github",
+      "label": "GitHub CLI",
+      "bin": "gh",
+      "blurb": "Pull requests and issues",
+      "homepage": "https://cli.github.com",
+      "icon": "git",
+      "mobile_notes": "Termux maintains a gh package. Sign in with gh auth login. Phone interaction is not yet verified.",
+      "termux_package": "gh"
+    },
+    {
+      "id": "lazygit",
+      "label": "lazygit",
+      "bin": "lazygit",
+      "blurb": "Git client",
+      "homepage": "https://github.com/jesseduffield/lazygit",
+      "icon": "git",
+      "mobile_notes": "Candidate. Check mouse targets and narrow layouts on a phone."
+    },
+    {
+      "id": "yazi",
+      "label": "Yazi",
+      "bin": "yazi",
+      "blurb": "File manager",
+      "homepage": "https://yazi-rs.github.io",
+      "icon": "folder",
+      "mobile_notes": "Candidate. Check tap navigation and external editor handoff."
+    },
+    {
+      "id": "micro",
+      "kind": "editor",
+      "label": "micro",
+      "bin": "micro",
+      "blurb": "Text editor",
+      "termux_package": "micro",
+      "homepage": "https://micro-editor.github.io",
+      "icon": "editor",
+      "mobile_notes": "Candidate. Modeless editing; check selection and the software keyboard."
+    },
+    {
+      "id": "helix",
+      "kind": "editor",
+      "label": "Helix",
+      "bin": "hx",
+      "blurb": "Modal editor",
+      "homepage": "https://helix-editor.com",
+      "icon": "editor",
+      "mobile_notes": "Keyboard-heavy. Included for users who prefer modal editing, not verified touch-first."
+    },
+    {
+      "id": "neovim",
+      "kind": "editor",
+      "label": "Neovim",
+      "bin": "nvim",
+      "blurb": "Modal editor",
+      "homepage": "https://neovim.io",
+      "icon": "editor",
+      "mobile_notes": "Keyboard-heavy. Familiar to Neovim users, but modal commands and key chords can be awkward with a phone software keyboard."
+    },
+    {
+      "id": "gitui",
+      "label": "GitUI",
+      "bin": "gitui",
+      "blurb": "Git client",
+      "homepage": "https://github.com/gitui-org/gitui",
+      "icon": "git",
+      "mobile_notes": "Keyboard-heavy candidate. Needs a phone review."
+    },
+    {
+      "id": "zellij",
+      "label": "Zellij",
+      "bin": "zellij",
+      "blurb": "Terminal workspace",
+      "homepage": "https://zellij.dev",
+      "icon": "terminal",
+      "mobile_notes": "Candidate. Review nested multiplexer input and graphics compatibility."
+    },
+    {
+      "id": "bottom",
+      "label": "bottom",
+      "bin": "btm",
+      "blurb": "System monitor",
+      "homepage": "https://clementtsang.github.io/bottom",
+      "icon": "monitor",
+      "mobile_notes": "Candidate. Review readability and narrow-screen layouts."
+    }
+  ]
+}

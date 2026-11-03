@@ -1,0 +1,63 @@
+#!/usr/bin/expect -f
+# Simulates Termux with a private fake pkg executable. Never installs packages.
+set timeout 12
+log_user 0
+set root [file join /tmp "mobux-install-test-[pid]"]
+set socket "mobux-install-test-[pid]"
+set binary [file normalize [file join [file dirname [info script]] .. target debug mobux]]
+file mkdir [file join $root bin]
+file link -symbolic [file join $root bin tmux] [lindex [auto_execok tmux] 0]
+set output [open [file join $root bin pkg] w]
+puts $output {#!/bin/sh
+printf '%s\n' "$@" > "$MOBUX_FAKE_PACKAGE_LOG"
+printf 'FAKE_PKG_READY\n'
+while :; do sleep 1; done}
+close $output
+file attributes [file join $root bin pkg] -permissions 0755
+log_file -a -noappend "$root.log"
+proc await {pattern} {
+    expect {
+        -exact $pattern { return }
+        timeout { error "Timed out waiting for $pattern" }
+        eof { error "Exited waiting for $pattern" }
+    }
+}
+proc click {column row} {
+    send -- [format "\033\[<0;%d;%dM\033\[<0;%d;%dm" $column $row $column $row]
+}
+set failed [catch {
+    spawn -noecho sh -c {stty rows 48 columns 40; exec "$@"} sh env -u TMUX PATH=$root/bin:/usr/bin:/bin TERM=xterm-256color TERMUX_VERSION=test-fixture SHELL=/bin/sh MOBUX_GRAPHICS=cells MOBUX_CONFIG_DIR=$root/config XDG_CACHE_HOME=$root/cache MOBUX_SESSION_SOCKET=$socket MOBUX_FAKE_PACKAGE_LOG=$root/args $binary $root
+    await "Live sessions"
+    click 10 17
+    await "Apps"
+    click 10 9
+    await "Added GitHub CLI"
+    click 10 9
+    await "Install GitHub CLI?"
+    await "pkg install gh"
+    await "Cancel"
+    await "\033\[?2026l"
+    send -- "\r"
+    await "\033\[?2026l"
+    if {[file exists [file join $root args]]} {error "Enter authorized an install"}
+    click 10 27
+    await "\033\[?2026l"
+    if {[file exists [file join $root args]]} {error "Cancel ran the installer"}
+    click 20 47
+    await "Your workspace."
+    click 10 17
+    await "Install GitHub CLI?"
+    click 28 27
+    await "FAKE_PKG_READY"
+    set input [open [file join $root args] r]
+    set args [split [string trim [read $input]] "\n"]
+    close $input
+    if {$args ne {install gh}} {error "Wrong package arguments: $args"}
+    puts "PASS: install prompt, Enter safety, cancellation, and confirmed literal argv through a fake package manager."
+} message]
+if {$failed} {puts stderr "FAIL: $message\nPTY log: $root.log"}
+catch {exec tmux -L $socket kill-server}
+catch {close}
+catch {wait}
+file delete -force $root
+exit $failed

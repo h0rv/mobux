@@ -1,0 +1,105 @@
+#!/usr/bin/expect -f
+# Real mouse events through a PTY. Only a unique test tmux server is touched.
+set timeout 12
+log_user 0
+set binary [file normalize [file join [file dirname [info script]] .. target debug mobux]]
+set socket "mobux-ui-test-[pid]"
+set root [file join /tmp $socket]
+set project [file join $root "project with spaces"]
+file mkdir $project
+log_file -a -noappend [file join /tmp "$socket.log"]
+
+proc await {pattern} {
+    expect {
+        -exact $pattern { return }
+        timeout { error "Timed out waiting for $pattern" }
+        eof { error "Application exited while waiting for $pattern" }
+    }
+}
+proc click {column row} {
+    send -- [format "\033\[<0;%d;%dM\033\[<0;%d;%dm" $column $row $column $row]
+}
+proc pane_pid {socket id} {
+    return [string trim [exec tmux -L $socket display-message -p -t $id {#{pane_pid}}]]
+}
+proc start_mobux {} {
+    global root project socket binary spawn_id
+    spawn -noecho sh -c {stty rows 48 columns 40; exec "$@"} sh env -u TMUX TERM=xterm-256color SHELL=/bin/sh MOBUX_GRAPHICS=cells MOBUX_CONFIG_DIR=$root/config XDG_CACHE_HOME=$root/cache MOBUX_SESSION_SOCKET=$socket $binary $project
+    await "Live sessions"
+}
+proc open_terminal {} {
+    click 10 31
+    await " Home "
+    await " Apps "
+}
+
+set failed [catch {
+    start_mobux
+    open_terminal
+    set id [string trim [exec tmux -L $socket list-sessions -F {#{session_id}}]]
+    set first_pid [pane_pid $socket $id]
+    send -- "printf 'PERSISTENT_OUTPUT\\n'\r"
+    await "PERSISTENT_OUTPUT"
+    click 10 47
+    await "Live sessions"
+    if {[pane_pid $socket $id] ne $first_pid} { error "Home restarted the program" }
+
+    open_terminal
+    if {[pane_pid $socket $id] ne $first_pid} { error "Reopening Terminal changed its PID" }
+    click 30 48
+    await "Open apps"
+    await "Running"
+    if {[pane_pid $socket $id] ne $first_pid} { error "Apps stopped the program" }
+
+    send -- "\033"
+    await "Live sessions"
+    send -- "5"
+    await "Settings"
+    for {set i 0} {$i < 6} {incr i} { send -- "\033\[B" }
+    send -- "\r"
+    await "micro"
+    set handle [open [file join $root config state.json] r]
+    set config [read $handle]
+    close $handle
+    if {![string match {*"editor": "micro"*} $config]} { error "Editor preference was not saved" }
+    send -- "q"
+    expect eof
+    set result [wait]
+    if {[lindex $result 3] != 0} { error "First Mobux process failed: $result" }
+    if {[pane_pid $socket $id] ne $first_pid} { error "Quitting Mobux stopped its session" }
+
+    start_mobux
+    open_terminal
+    if {[pane_pid $socket $id] ne $first_pid} { error "Restarting Mobux did not discover the old session" }
+    click 30 47
+    await "Open apps"
+    await "Running"
+
+    click 36 3
+    await "Stop Terminal?"
+    await "Cancel"
+    await "\033\[?2026l"
+    if {[pane_pid $socket $id] ne $first_pid} { error "First Stop tap killed the session without confirmation" }
+    send -- "\033"
+    await "\033\[?2026l"
+    if {[pane_pid $socket $id] ne $first_pid} { error "Cancel stopped the program" }
+    click 36 3
+    await "Stop Terminal?"
+    click 28 27
+    await "No open apps yet"
+    if {![catch {exec tmux -L $socket has-session -t $id}]} { error "Confirmed Stop left the session alive" }
+    send -- "q"
+    expect eof
+    set result [wait]
+    if {[lindex $result 3] != 0} { error "Second Mobux process failed: $result" }
+    puts "PASS: tap Home/Apps, same PID on resume and UI restart, saved preferences, cancel and confirmed Stop."
+} message]
+if {$failed} {
+    puts stderr "FAIL: $message"
+    puts stderr "PTY log: /tmp/$socket.log"
+}
+catch {exec tmux -L $socket kill-server}
+catch {close}
+catch {wait}
+file delete -force $root
+exit $failed

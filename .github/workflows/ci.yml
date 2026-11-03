@@ -1,0 +1,95 @@
+name: Check and build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: sudo apt-get update && sudo apt-get install -y tmux ripgrep expect shellcheck
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component clippy --component rustfmt && rustup default stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Check
+        run: |
+          cargo fmt --all --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+          cargo test --locked
+          cargo build --locked --bin mobux
+          expect tests/pty-sessions.exp
+          expect tests/pty-install.exp
+          expect tests/pty-files.exp
+          shellcheck scripts/*.sh
+
+  android:
+    needs: check
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-linux-android
+            compiler: aarch64-linux-android28-clang
+          - target: x86_64-linux-android
+            compiler: x86_64-linux-android28-clang
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable && rustup target add '${{ matrix.target }}'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Android NDK
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'ndk;28.2.13676358'
+          toolchain="$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          key="CARGO_TARGET_$(printf '%s' '${{ matrix.target }}' | tr '[:lower:]-' '[:upper:]_')_LINKER"
+          echo "$key=$toolchain/${{ matrix.compiler }}" >> "$GITHUB_ENV"
+      - name: Build Android binary
+        env:
+          RUSTFLAGS: -C link-arg=-Wl,-z,max-page-size=16384
+        run: cargo build --locked --release --bin mobux --target '${{ matrix.target }}'
+      - name: Package binary and notices
+        run: bash scripts/package-android.sh '${{ matrix.target }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobux-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  snapshot:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: android
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mobux-*
+          merge-multiple: true
+          path: dist
+      - name: Publish experimental snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          gh release create "snapshot-$RUN_NUMBER" dist/* \
+            --target "$COMMIT" --prerelease \
+            --title "Experimental snapshot $RUN_NUMBER" \
+            --notes "Android 9+ ARM64 and x86_64 binaries. Cross-compiled, not yet verified on a physical phone. Commit: $COMMIT. See SETUP.md before installing."

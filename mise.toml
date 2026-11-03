@@ -1,0 +1,40 @@
+[tools]
+rust = "stable"
+sccache = "latest"
+
+[env]
+RUSTC_WRAPPER = "sccache"
+
+[tasks.dev]
+description = "Run mobux in the current terminal"
+run = "cargo run --bin mobux"
+
+[tasks.test]
+description = "Run the tests"
+run = "cargo test"
+
+[tasks.fmt]
+description = "Format the Rust sources"
+run = "cargo fmt --all"
+
+[tasks.fmt-check]
+description = "Fail if rustfmt would change a file"
+run = "cargo fmt --all --check"
+
+[tasks.lint]
+description = "Run clippy on every target"
+run = "cargo clippy --all-targets --all-features -- -D warnings"
+
+[tasks.snap]
+description = "Write the home screen at phone and desktop sizes"
+run = "cargo run --bin snap -- shots"
+sources = ["src/**/*.rs", "catalog/*.json", "themes/*.json", "assets/icons/*.png", "assets/fonts/*", "Cargo.toml", "Cargo.lock"]
+outputs = ["shots/home-mobile.png", "shots/home-desktop.png", "shots/home-cells-mobile.png", "shots/search-mobile.png", "shots/files-mobile.png", "shots/iphone-mobile.png", "shots/settings-mobile.png", "shots/recents-mobile.png", "shots/apps-mobile.png", "shots/home-blocky-mobile.png", "shots/home-terminal-mobile.png", "shots/one-dark-mobile.png", "shots/light-mobile.png", "shots/stop-mobile.png", "shots/android-mobile.png", "shots/workspace-active-mobile.png", "shots/install-mobile.png"]
+
+[tasks.test-ui]
+description = "Verify touch session switching through a real PTY (requires tmux, rg, and expect)"
+run = "cargo build --bin mobux && expect tests/pty-sessions.exp && expect tests/pty-install.exp && expect tests/pty-files.exp"
+
+[tasks.check]
+description = "Format check, clippy, tests, and home screenshots"
+depends = ["fmt-check", "lint", "test", "snap"]
