@@ -35,7 +35,6 @@ jobs:
           shellcheck scripts/*.sh
 
   android:
-    needs: check
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -72,7 +71,7 @@ jobs:
 
   snapshot:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: android
+    needs: [check, android]
     runs-on: ubuntu-24.04
     permissions:
       contents: write

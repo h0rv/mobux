@@ -6,7 +6,10 @@ set root [file join /tmp "mobux-install-test-[pid]"]
 set socket "mobux-install-test-[pid]"
 set binary [file normalize [file join [file dirname [info script]] .. target debug mobux]]
 file mkdir [file join $root bin]
-file link -symbolic [file join $root bin tmux] [lindex [auto_execok tmux] 0]
+# Do not inherit host tools: GitHub runners already have gh installed.
+foreach tool {tmux nice sleep} {
+    file link -symbolic [file join $root bin $tool] [lindex [auto_execok $tool] 0]
+}
 set output [open [file join $root bin pkg] w]
 puts $output {#!/bin/sh
 printf '%s\n' "$@" > "$MOBUX_FAKE_PACKAGE_LOG"
@@ -26,7 +29,7 @@ proc click {column row} {
     send -- [format "\033\[<0;%d;%dM\033\[<0;%d;%dm" $column $row $column $row]
 }
 set failed [catch {
-    spawn -noecho sh -c {stty rows 48 columns 40; exec "$@"} sh env -u TMUX PATH=$root/bin:/usr/bin:/bin TERM=xterm-256color TERMUX_VERSION=test-fixture SHELL=/bin/sh MOBUX_GRAPHICS=cells MOBUX_CONFIG_DIR=$root/config XDG_CACHE_HOME=$root/cache MOBUX_SESSION_SOCKET=$socket MOBUX_FAKE_PACKAGE_LOG=$root/args $binary $root
+    spawn -noecho sh -c {stty rows 48 columns 40; exec "$@"} sh env -u TMUX PATH=$root/bin TERM=xterm-256color TERMUX_VERSION=test-fixture SHELL=/bin/sh MOBUX_GRAPHICS=cells MOBUX_CONFIG_DIR=$root/config XDG_CACHE_HOME=$root/cache MOBUX_SESSION_SOCKET=$socket MOBUX_FAKE_PACKAGE_LOG=$root/args $binary $root
     await "Live sessions"
     click 10 17
     await "Apps"
