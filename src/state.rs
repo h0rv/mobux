@@ -553,6 +553,11 @@ impl State {
     }
 
     fn launch_named(&mut self, title: &str, bin: &str) -> Action {
+        if let Some(missing) = crate::catalog::by_bin(bin)
+            .and_then(|app| app.requires.iter().find(|dependency| !on_path(dependency)))
+        {
+            return self.offer_missing(missing);
+        }
         if on_path(bin) {
             if bin == "gh" {
                 return self.launch_github();
@@ -565,18 +570,22 @@ impl State {
                 self.cwd.clone(),
             )
         } else {
-            self.notice = format!("{bin} is not installed");
-            self.open_store();
-            if let Some(index) = CATALOG.iter().position(|item| item.bin == bin) {
-                self.store_cursor = index;
-                self.pending_install =
-                    crate::install::Plan::for_app(&CATALOG[index], crate::install::is_termux());
-                if self.pending_install.is_some() {
-                    self.notice.clear();
-                }
-            }
-            Action::None
+            self.offer_missing(bin)
         }
+    }
+
+    fn offer_missing(&mut self, bin: &str) -> Action {
+        self.open_store();
+        self.notice = format!("{bin} is not installed");
+        if let Some(index) = CATALOG.iter().position(|app| app.bin == bin) {
+            self.store_cursor = index;
+            self.pending_install =
+                crate::install::Plan::for_app(&CATALOG[index], crate::install::is_termux());
+            if self.pending_install.is_some() {
+                self.notice.clear();
+            }
+        }
+        Action::None
     }
 
     fn activate_icon(&mut self, index: usize) -> Action {
@@ -1281,8 +1290,7 @@ impl State {
             return Action::None;
         };
         if !on_path(bin) {
-            self.notice = format!("{bin} is not installed. Change Editor in Settings.");
-            return Action::None;
+            return self.offer_missing(bin);
         }
         let title = path
             .file_name()
@@ -1885,6 +1893,8 @@ mod tests {
     #[test]
     fn automatic_editor_requires_an_added_editor() {
         let mut state = State::new();
+        assert_eq!(state.preferred_editor, EditorChoice::Micro);
+        state.preferred_editor = EditorChoice::Auto;
         assert_eq!(state.preferred_editor, EditorChoice::Auto);
         assert_eq!(
             state.launch_editor(PathBuf::from("/tmp/example.rs")),
@@ -2261,7 +2271,7 @@ mod tests {
         state.places.dot_home = Rect::new(10, 20, 2, 1);
         state.places.dot_shell = Rect::new(14, 20, 2, 1);
         // Keep the dots inside sheets so a sheet's outside-tap dismissal is not tested.
-        let sheet = Rect::new(0, 0, 40, 30);
+        let sheet = Rect::new(0, 0, 40, 21);
         state.places.files_sheet = sheet;
         state.places.search_sheet = sheet;
         state.places.settings_sheet = sheet;

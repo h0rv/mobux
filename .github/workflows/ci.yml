@@ -62,7 +62,43 @@ jobs:
           RUSTFLAGS: -C link-arg=-Wl,-z,max-page-size=16384
         run: cargo build --locked --release --bin mobux --target '${{ matrix.target }}'
       - name: Package binary and notices
-        run: bash scripts/package-android.sh '${{ matrix.target }}'
+        run: bash scripts/package-release.sh '${{ matrix.target }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobux-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  unix:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-24.04
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-24.04-arm
+          - target: x86_64-apple-darwin
+            runner: macos-14
+          - target: aarch64-apple-darwin
+            runner: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal && rustup default stable && rustup target add '${{ matrix.target }}'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --locked --release --bin mobux --target '${{ matrix.target }}'
+      - name: Check native startup
+        run: |
+          if [ "$(rustc -vV | awk '/^host:/ {print $2}')" = '${{ matrix.target }}' ]; then
+            './target/${{ matrix.target }}/release/mobux' --version
+          fi
+      - name: Package
+        run: bash scripts/package-release.sh '${{ matrix.target }}'
       - uses: actions/upload-artifact@v4
         with:
           name: mobux-${{ matrix.target }}
@@ -71,7 +107,7 @@ jobs:
 
   snapshot:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [check, android]
+    needs: [check, android, unix]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -91,4 +127,4 @@ jobs:
           gh release create "snapshot-$RUN_NUMBER" dist/* \
             --target "$COMMIT" --prerelease \
             --title "Experimental snapshot $RUN_NUMBER" \
-            --notes "Android 9+ ARM64 and x86_64 binaries. Cross-compiled, not yet verified on a physical phone. Commit: $COMMIT. See SETUP.md before installing."
+            --notes "Android 9+, Linux, and macOS binaries for ARM64 and x86_64. Android builds are cross-compiled and not yet verified on a physical phone. Commit: $COMMIT. See SETUP.md before installing."

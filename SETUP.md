@@ -2,7 +2,7 @@
 
 Mobux runs inside Termux and uses tmux for persistent apps. It is an experimental terminal workspace, not a separate Android app. No coding agents or editors are installed automatically.
 
-Android binaries are cross-compiled in GitHub Actions. A successful build is not proof of phone compatibility. Physical phone testing is still needed.
+GitHub Actions publishes prebuilt Android, Linux, and macOS binaries for ARM64 and x86_64. Android binaries are cross-compiled. A successful build is not proof of phone compatibility. Physical phone testing is still needed.
 
 ## Install a prebuilt snapshot
 
@@ -30,6 +30,10 @@ The installer downloads the newest published experimental snapshot from this rep
 If no snapshot is available yet, [check the build](https://github.com/h0rv/mobux/actions/workflows/ci.yml). The first build must finish before the installer can download a binary. You can also build from source below.
 
 To update, run the installer again. Existing settings and tmux sessions are not deleted.
+
+## Linux and macOS downloads
+
+The [snapshot releases](https://github.com/h0rv/mobux/releases) also contain Linux and macOS archives. Choose `x86_64` or `aarch64` for your machine, and `unknown-linux-gnu` or `apple-darwin` for the operating system. Extract the archive and run its `mobux/mobux` binary. Install tmux and ripgrep through your system package manager. Linux builds use Ubuntu 24.04. Windows and iOS binaries are not provided.
 
 ## Build from source on the phone
 
@@ -76,6 +80,30 @@ MOBUX_GRAPHICS=cells mobux
 
 Phone target sizes, keyboard behavior, and accessibility remain unverified. Android may kill background processes. tmux does not protect against the operating system killing its server.
 
+## Termux practices
+
+Use a supported Termux release from the sources in its official installation guide. Do not mix app and plugin packages from different signing sources. Keep development projects in `$HOME`; shared storage does not provide the same Unix file behavior. Only request storage access if you need it.
+
+Do not paste credentials into saved commands or shell history. Android may stop background apps, so test session recovery on your device before trusting a long job to it. If Termux is being stopped, review its battery settings. Mobux cannot override Android's process limits.
+
+## Keyboard and editor
+
+See the [keyboard guide](docs/KEYBOARD.md) for a Termux arrow-key row and current FOSS keyboard choices. Try HeliBoard for typing and Termux's extra keys for terminal controls.
+
+micro is the preferred editor for new configurations. Opening a file offers a confirmed installation if micro is missing on Termux. Existing preferences are preserved. You can choose Neovim in Settings instead.
+
+## Themes
+
+Change Theme in Settings, or set `MOBUX_THEME` before starting:
+
+```sh
+MOBUX_THEME=catppuccin-mocha mobux
+MOBUX_THEME=catppuccin-latte mobux
+MOBUX_THEME=tokyo-night-dark mobux
+```
+
+Gruvbox Material Dark, Gruvbox Material Light, and One Dark Pro are also included. Custom JSON palettes use the format in `themes/`. The [theme gallery](docs/THEMES.md) shows generated mobile layouts.
+
 ## App switching and recovery
 
 Mobux needs tmux 3.4 or newer for the wide Home and Apps status controls. Check with `tmux -V`. Without it, apps run in the foreground and cannot be switched persistently. `MOBUX_SESSIONS=foreground` selects that mode explicitly.
@@ -93,9 +121,15 @@ Use the standard tmux detach command, Ctrl+b followed by d, if you need to leave
 
 ## Optional tools
 
-Add catalog entries to the workspace before opening them. On Termux, a missing GitHub CLI or micro entry offers a confirmed package installation. The dialog shows `pkg install gh` or `pkg install micro` before execution. No remote install scripts or guessed Android packages are used for catalog entries.
+Add catalog entries to the workspace before opening them. Confirmed Termux package recipes are available for micro, GitHub CLI, Neovim, Helix, lazygit, and Yazi. The dialog shows the package command before execution. The package manager may ask for confirmation too.
+
+Definitions are in `catalog/apps.json`. `termux_package` names an audited Termux package. `requires` lists other executable commands an app needs. Mobux checks those commands before launch and offers a known package recipe when available. The package manager handles library dependencies. Mobux does not enable extra repositories automatically.
+
+Core runtime tools are tmux 3.4 or newer, ripgrep for content search, and coreutils for process launch. The Termux installer instructions include them. No optional editor or coding agent is bundled.
 
 GitHub sign-in is separate. Run `gh auth login` in the GitHub shell. Mobux does not save GitHub tokens or automatically publish or merge changes.
+
+GitHub Dash (`gh-dash`) is an optional TUI for pull requests and issues. It uses GitHub CLI authentication. Its Termux package is in the separate [Termux User Repository](https://github.com/termux-user-repository/tur/blob/master/tur/gh-dash/build.sh), not the main repository. Mobux does not install or enable that repository for you. Upstream has a bottom preview layout, but the installed package may lag. [Mouse support remains an open PR](https://github.com/dlvhdr/gh-dash/pull/722), so this is a keyboard-oriented candidate, not a verified touch interface.
 
 Herdr is an optional agent manager, not a coding agent. Its official installer rejects native Android and Termux. Use a supported host for it. OpenCode and Hunk have no verified native Termux installation path in this project. Package availability does not establish touchscreen usability.
 

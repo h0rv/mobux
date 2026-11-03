@@ -17,8 +17,8 @@ static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EditorChoice {
-    #[default]
     Auto,
+    #[default]
     Micro,
     Nano,
     Neovim,
@@ -406,13 +406,14 @@ mod tests {
         assert_eq!(settings.surface_style, SurfaceStyle::Rounded);
         assert!(settings.wallpaper);
         assert_eq!(settings.palette, Palette::GruvboxMaterialDark);
-        assert_eq!(settings.editor, EditorChoice::Auto);
+        assert_eq!(settings.editor, EditorChoice::Micro);
         assert_eq!(Config::default().version, 1);
     }
 
     #[test]
     fn editor_labels_commands_and_steps() {
-        let mut editor = EditorChoice::default();
+        assert_eq!(EditorChoice::default(), EditorChoice::Micro);
+        let mut editor = EditorChoice::Auto;
         for (choice, label, command) in [
             (EditorChoice::Auto, "Auto", None),
             (EditorChoice::Micro, "micro", Some("micro")),

@@ -29,6 +29,8 @@ pub struct CatalogItem {
     pub mobile_notes: String,
     #[serde(default)]
     pub termux_package: Option<String>,
+    #[serde(default)]
+    pub requires: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -76,5 +78,15 @@ mod tests {
         assert_eq!(by_bin("hunk").unwrap().args, ["diff"]);
         assert!(by_bin("herdr").is_some());
         assert!(by_bin("nvim").is_some());
+        assert_eq!(by_bin("gh-dash").unwrap().requires, ["gh"]);
+        for app in CATALOG.iter() {
+            for dependency in &app.requires {
+                assert!(
+                    by_bin(dependency).is_some(),
+                    "unknown dependency {dependency}"
+                );
+                assert_ne!(dependency, &app.bin);
+            }
+        }
     }
 }

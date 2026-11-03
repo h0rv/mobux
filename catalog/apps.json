@@ -44,7 +44,18 @@
       "termux_package": "gh"
     },
     {
+      "id": "gh-dash",
+      "label": "GitHub Dash",
+      "bin": "gh-dash",
+      "requires": ["gh"],
+      "blurb": "Pull requests and issues TUI",
+      "homepage": "https://gh-dash.dev",
+      "icon": "git",
+      "mobile_notes": "Keyboard-oriented candidate. Bottom preview layout exists upstream, but mouse-support PR 722 is still open. A package exists in the separate Termux User Repository; Mobux does not enable extra repositories automatically. Phone use is unverified."
+    },
+    {
       "id": "lazygit",
+      "termux_package": "lazygit",
       "label": "lazygit",
       "bin": "lazygit",
       "blurb": "Git client",
@@ -54,6 +65,7 @@
     },
     {
       "id": "yazi",
+      "termux_package": "yazi",
       "label": "Yazi",
       "bin": "yazi",
       "blurb": "File manager",
@@ -74,6 +86,7 @@
     },
     {
       "id": "helix",
+      "termux_package": "helix",
       "kind": "editor",
       "label": "Helix",
       "bin": "hx",
@@ -84,6 +97,7 @@
     },
     {
       "id": "neovim",
+      "termux_package": "neovim",
       "kind": "editor",
       "label": "Neovim",
       "bin": "nvim",

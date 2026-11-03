@@ -1,6 +1,6 @@
 # Theme sources and licenses
 
-These files contain color data. The application loads them through `src/palette.rs`, independently of its Android/iPhone layout. Gruvbox Material Dark is the default. One Dark Pro and Gruvbox Material Light are alternate presets. `MOBUX_THEME` can select a preset or a custom JSON file.
+These files contain color data. The application loads them through `src/palette.rs`, independently of its Android/iPhone layout. Gruvbox Material Dark is the default. The alternate presets are One Dark Pro, Gruvbox Material Light, Catppuccin Mocha, Catppuccin Latte, and Tokyo Night Dark. `MOBUX_THEME` can select a preset or a custom JSON file.
 
 Each JSON file has `name`, `author`, `variant`, and `palette` fields. The palette contains all 16 Base16 roles, from `base00` through `base0F`, as six lowercase hexadecimal digits without `#`.
 
@@ -17,6 +17,23 @@ Sources at that revision:
 * [MIT license](https://github.com/tinted-theming/schemes/blob/dd2a1379533372ad79560bb4392570782a8a0a9d/LICENSE). An unchanged copy is included in [licenses/tinted-theming-MIT.txt](licenses/tinted-theming-MIT.txt).
 
 The YAML was converted to JSON. The `system` field and the leading `#` on each color were removed to fit the local schema. Names, author credits, variants, and all palette values are unchanged. These are upstream Base16 schemes, not new color adaptations.
+
+## Catppuccin and Tokyo Night
+
+The bundled `catppuccin-mocha.json`, `catppuccin-latte.json`, and `tokyo-night-dark.json` use the Base16 palettes from [Tinted Theming's schemes repository](https://github.com/tinted-theming/schemes) at revision `dd2a1379533372ad79560bb4392570782a8a0a9d`.
+
+Sources at that revision:
+
+* [Catppuccin Mocha](https://github.com/tinted-theming/schemes/blob/dd2a1379533372ad79560bb4392570782a8a0a9d/base16/catppuccin-mocha.yaml).
+* [Catppuccin Latte](https://github.com/tinted-theming/schemes/blob/dd2a1379533372ad79560bb4392570782a8a0a9d/base16/catppuccin-latte.yaml).
+* [Tokyo Night Dark](https://github.com/tinted-theming/schemes/blob/dd2a1379533372ad79560bb4392570782a8a0a9d/base16/tokyo-night-dark.yaml).
+* [MIT license](https://github.com/tinted-theming/schemes/blob/dd2a1379533372ad79560bb4392570782a8a0a9d/LICENSE). An unchanged copy is included in [licenses/tinted-theming-MIT.txt](licenses/tinted-theming-MIT.txt).
+
+The Catppuccin schemes credit `https://github.com/catppuccin/catppuccin`. Tokyo Night Dark credits Michaël Ball. Each JSON file preserves the upstream name, author, and variant.
+
+The YAML was converted to JSON without adding a parser or changing any Base16 role. The `system` field, YAML comments, and leading `#` on each color were removed. Hexadecimal letters were made lowercase. Tokyo Night Dark is the upstream dark palette, not the Storm or Light palette. Its Base16 role assignments are preserved even where they differ from common Tokyo Night terminal colors.
+
+The startup names are `catppuccin-mocha`, `catppuccin-latte`, and `tokyo-night-dark`. Cycling appends them in that order after the existing Gruvbox Material Dark, One Dark Pro, and Gruvbox Material Light presets.
 
 ## One Dark Pro
 

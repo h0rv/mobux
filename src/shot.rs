@@ -40,7 +40,7 @@ pub const HOME_SHOTS: &[HomeShot] = &[
 
 pub fn write_home(dir: &Path) -> io::Result<Vec<PathBuf>> {
     fs::create_dir_all(dir)?;
-    let mut paths = Vec::with_capacity(HOME_SHOTS.len() + 15);
+    let mut paths = Vec::with_capacity(HOME_SHOTS.len() + 18);
     for shot in HOME_SHOTS {
         let image = home_image(shot.cols, shot.rows)?;
         paths.push(save_png(dir, shot.name, &image)?);
@@ -68,6 +68,23 @@ pub fn write_home(dir: &Path) -> io::Result<Vec<PathBuf>> {
         state.palette = crate::palette::Palette::GruvboxMaterialLight
     })?;
     paths.push(save_png(dir, "light-mobile", &light)?);
+    for (name, palette) in [
+        (
+            "catppuccin-mocha-mobile",
+            crate::palette::Palette::CatppuccinMocha,
+        ),
+        (
+            "catppuccin-latte-mobile",
+            crate::palette::Palette::CatppuccinLatte,
+        ),
+        (
+            "tokyo-night-mobile",
+            crate::palette::Palette::TokyoNightDark,
+        ),
+    ] {
+        let image = screen_image(40, 48, |state| state.palette = palette)?;
+        paths.push(save_png(dir, name, &image)?);
+    }
     let blocky = screen_image(40, 48, |state| {
         state.surface_style = theme::SurfaceStyle::Blocky
     })?;
@@ -111,6 +128,21 @@ pub fn write_home(dir: &Path) -> io::Result<Vec<PathBuf>> {
             kind,
         })
         .collect();
+        let mut tree = crate::tree::Tree::new(state.cwd.clone(), &state.files);
+        tree.rows.insert(
+            2,
+            crate::tree::Row {
+                node: Node {
+                    name: "main.rs".into(),
+                    path: state.cwd.join("src/main.rs"),
+                    kind: NodeKind::File,
+                },
+                depth: 1,
+                expanded: false,
+            },
+        );
+        tree.rows[1].expanded = true;
+        state.tree = Some(tree);
     })?;
     paths.push(save_png(dir, "files-mobile", &files)?);
     let iphone = screen_image(40, 48, |state| {
@@ -597,7 +629,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("mobux-shots-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         let paths = write_home(&dir).unwrap();
-        assert_eq!(paths.len(), 17);
+        assert_eq!(paths.len(), 20);
         for path in paths {
             let bytes = fs::read(&path).unwrap();
             assert!(bytes.starts_with(b"\x89PNG"));

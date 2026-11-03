@@ -116,6 +116,19 @@ static GRUVBOX_MATERIAL_LIGHT: LazyLock<Scheme> = LazyLock::new(|| {
         .expect("bundled Gruvbox Material Light scheme must be valid")
 });
 
+static CATPPUCCIN_MOCHA: LazyLock<Scheme> = LazyLock::new(|| {
+    Scheme::parse_json(include_str!("../themes/catppuccin-mocha.json"))
+        .expect("bundled Catppuccin Mocha scheme must be valid")
+});
+static CATPPUCCIN_LATTE: LazyLock<Scheme> = LazyLock::new(|| {
+    Scheme::parse_json(include_str!("../themes/catppuccin-latte.json"))
+        .expect("bundled Catppuccin Latte scheme must be valid")
+});
+static TOKYO_NIGHT_DARK: LazyLock<Scheme> = LazyLock::new(|| {
+    Scheme::parse_json(include_str!("../themes/tokyo-night-dark.json"))
+        .expect("bundled Tokyo Night Dark scheme must be valid")
+});
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum Palette {
@@ -123,15 +136,31 @@ pub enum Palette {
     GruvboxMaterialDark,
     OneDarkPro,
     GruvboxMaterialLight,
+    CatppuccinMocha,
+    CatppuccinLatte,
+    TokyoNightDark,
     Custom(Arc<Scheme>),
 }
 
 impl Palette {
+    pub fn presets() -> [Self; 6] {
+        [
+            Self::GruvboxMaterialDark,
+            Self::OneDarkPro,
+            Self::GruvboxMaterialLight,
+            Self::CatppuccinMocha,
+            Self::CatppuccinLatte,
+            Self::TokyoNightDark,
+        ]
+    }
     pub fn label(&self) -> &str {
         match self {
             Self::GruvboxMaterialDark => "Gruvbox Material Dark",
             Self::OneDarkPro => "One Dark Pro",
             Self::GruvboxMaterialLight => "Gruvbox Material Light",
+            Self::CatppuccinMocha => "Catppuccin Mocha",
+            Self::CatppuccinLatte => "Catppuccin Latte",
+            Self::TokyoNightDark => "Tokyo Night Dark",
             Self::Custom(scheme) => &scheme.name,
         }
     }
@@ -141,6 +170,9 @@ impl Palette {
             Self::GruvboxMaterialDark => &GRUVBOX_MATERIAL_DARK,
             Self::OneDarkPro => &ONE_DARK_PRO,
             Self::GruvboxMaterialLight => &GRUVBOX_MATERIAL_LIGHT,
+            Self::CatppuccinMocha => &CATPPUCCIN_MOCHA,
+            Self::CatppuccinLatte => &CATPPUCCIN_LATTE,
+            Self::TokyoNightDark => &TOKYO_NIGHT_DARK,
             Self::Custom(scheme) => scheme,
         }
     }
@@ -153,10 +185,16 @@ impl Palette {
         *self = match (&*self, dir > 0) {
             (Self::GruvboxMaterialDark, true) => Self::OneDarkPro,
             (Self::OneDarkPro, true) => Self::GruvboxMaterialLight,
-            (Self::GruvboxMaterialLight | Self::Custom(_), true) => Self::GruvboxMaterialDark,
-            (Self::GruvboxMaterialDark | Self::Custom(_), false) => Self::GruvboxMaterialLight,
+            (Self::GruvboxMaterialLight, true) => Self::CatppuccinMocha,
+            (Self::CatppuccinMocha, true) => Self::CatppuccinLatte,
+            (Self::CatppuccinLatte, true) => Self::TokyoNightDark,
+            (Self::TokyoNightDark | Self::Custom(_), true) => Self::GruvboxMaterialDark,
+            (Self::GruvboxMaterialDark | Self::Custom(_), false) => Self::TokyoNightDark,
             (Self::OneDarkPro, false) => Self::GruvboxMaterialDark,
             (Self::GruvboxMaterialLight, false) => Self::OneDarkPro,
+            (Self::CatppuccinMocha, false) => Self::GruvboxMaterialLight,
+            (Self::CatppuccinLatte, false) => Self::CatppuccinMocha,
+            (Self::TokyoNightDark, false) => Self::CatppuccinLatte,
         };
     }
 
@@ -165,10 +203,13 @@ impl Palette {
             "gruvbox-material-dark" => Ok(Self::GruvboxMaterialDark),
             "one-dark-pro" => Ok(Self::OneDarkPro),
             "gruvbox-material-light" => Ok(Self::GruvboxMaterialLight),
+            "catppuccin-mocha" => Ok(Self::CatppuccinMocha),
+            "catppuccin-latte" => Ok(Self::CatppuccinLatte),
+            "tokyo-night-dark" => Ok(Self::TokyoNightDark),
             _ => {
                 let json = std::fs::read_to_string(name).map_err(|error| {
                     format!(
-                        "Cannot read theme {name:?}: {error}. Use gruvbox-material-dark, one-dark-pro, gruvbox-material-light, or a JSON file path"
+                        "Cannot read theme {name:?}: {error}. Use gruvbox-material-dark, one-dark-pro, gruvbox-material-light, catppuccin-mocha, catppuccin-latte, tokyo-night-dark, or a JSON file path"
                     )
                 })?;
                 let scheme = Scheme::parse_json(&json)
@@ -274,6 +315,9 @@ mod tests {
                 Palette::GruvboxMaterialLight,
                 Variant::Light,
             ),
+            ("catppuccin-mocha", Palette::CatppuccinMocha, Variant::Dark),
+            ("catppuccin-latte", Palette::CatppuccinLatte, Variant::Light),
+            ("tokyo-night-dark", Palette::TokyoNightDark, Variant::Dark),
         ] {
             assert_eq!(Palette::from_name_or_file(name).unwrap(), preset);
             assert_eq!(preset.scheme().variant, variant);
@@ -306,12 +350,18 @@ mod tests {
         for expected in [
             Palette::OneDarkPro,
             Palette::GruvboxMaterialLight,
+            Palette::CatppuccinMocha,
+            Palette::CatppuccinLatte,
+            Palette::TokyoNightDark,
             Palette::GruvboxMaterialDark,
         ] {
             palette.step(1);
             assert_eq!(palette, expected);
         }
         for expected in [
+            Palette::TokyoNightDark,
+            Palette::CatppuccinLatte,
+            Palette::CatppuccinMocha,
             Palette::GruvboxMaterialLight,
             Palette::OneDarkPro,
             Palette::GruvboxMaterialDark,
@@ -327,6 +377,62 @@ mod tests {
         assert_eq!(palette, Palette::GruvboxMaterialDark);
         palette = custom;
         palette.step(-1);
-        assert_eq!(palette, Palette::GruvboxMaterialLight);
+        assert_eq!(palette, Palette::TokyoNightDark);
+    }
+
+    #[test]
+    fn new_presets_preserve_upstream_names_authors_and_all_base16_roles() {
+        for (preset, name, author, colors) in [
+            (
+                Palette::CatppuccinMocha,
+                "Catppuccin Mocha",
+                "https://github.com/catppuccin/catppuccin",
+                [
+                    0x1e1e2e, 0x181825, 0x313244, 0x45475a, 0x585b70, 0xcdd6f4, 0xf5e0dc, 0xb4befe,
+                    0xf38ba8, 0xfab387, 0xf9e2af, 0xa6e3a1, 0x94e2d5, 0x89b4fa, 0xcba6f7, 0xf2cdcd,
+                ],
+            ),
+            (
+                Palette::CatppuccinLatte,
+                "Catppuccin Latte",
+                "https://github.com/catppuccin/catppuccin",
+                [
+                    0xeff1f5, 0xe6e9ef, 0xccd0da, 0xbcc0cc, 0xacb0be, 0x4c4f69, 0xdc8a78, 0x7287fd,
+                    0xd20f39, 0xfe640b, 0xdf8e1d, 0x40a02b, 0x179299, 0x1e66f5, 0x8839ef, 0xdd7878,
+                ],
+            ),
+            (
+                Palette::TokyoNightDark,
+                "Tokyo Night Dark",
+                "Michaël Ball",
+                [
+                    0x1a1b26, 0x16161e, 0x2f3549, 0x444b6a, 0x787c99, 0xa9b1d6, 0xcbccd1, 0xd5d6db,
+                    0xc0caf5, 0xa9b1d6, 0x0db9d7, 0x9ece6a, 0xb4f9f8, 0x2ac3de, 0xbb9af7, 0xf7768e,
+                ],
+            ),
+        ] {
+            let scheme = preset.scheme();
+            assert_eq!(preset.label(), name);
+            assert_eq!(scheme.name, name);
+            assert_eq!(scheme.author, author);
+            let expected = colors
+                .map(|color: u32| Rgb::new((color >> 16) as u8, (color >> 8) as u8, color as u8));
+            assert_eq!(scheme.colors, expected, "{name}");
+        }
+    }
+
+    #[test]
+    fn stepping_uses_direction_only_and_zero_preserves_each_preset() {
+        let mut palette = Palette::default();
+        for _ in 0..6 {
+            let original = palette.clone();
+            palette.step(0);
+            assert_eq!(palette, original);
+            palette.step(isize::MAX);
+            palette.step(isize::MIN);
+            assert_eq!(palette, original);
+            palette.step(1);
+        }
+        assert_eq!(palette, Palette::default());
     }
 }

@@ -186,10 +186,14 @@ impl Theme {
     pub fn with_palette(mut self, scheme: &Scheme) -> Self {
         let colors = &scheme.colors;
         self.ink = colors[0x05];
-        self.muted = colors[0x04];
+        self.muted = if contrast(colors[0x04], colors[0x01]) >= 4.5 {
+            colors[0x04]
+        } else {
+            colors[0x05]
+        };
         self.card = colors[0x01];
         self.chip = colors[0x02];
-        self.selected = colors[0x03];
+        self.selected = colors[0x02];
         // Base16 reverses its neutral ramp for light schemes, so this pair
         // keeps the search pill readable in either variant without fixed white.
         self.pill = colors[0x05];
@@ -213,6 +217,33 @@ impl Theme {
             *stop = (stop.0, color.r, color.g, color.b);
         }
         self
+    }
+}
+
+fn contrast(a: Rgb, b: Rgb) -> f64 {
+    let luminance = |color: Rgb| {
+        let linear = |value: u8| {
+            let v = f64::from(value) / 255.0;
+            if v <= 0.04045 {
+                v / 12.92
+            } else {
+                ((v + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        0.2126 * linear(color.r) + 0.7152 * linear(color.g) + 0.0722 * linear(color.b)
+    };
+    let a = luminance(a);
+    let b = luminance(b);
+    (a.max(b) + 0.05) / (a.min(b) + 0.05)
+}
+
+impl Theme {
+    pub fn action_colors(self) -> (Color, Color) {
+        if contrast(self.prompt, self.nav) >= 4.5 {
+            (self.prompt.color(), self.nav.color())
+        } else {
+            (self.pill.color(), self.pill_ink.color())
+        }
     }
 }
 
@@ -446,10 +477,10 @@ mod tests {
                     assert!(scheme.colors.contains(&color));
                 }
                 assert_eq!(theme.ink, scheme.colors[0x05]);
-                assert_eq!(theme.muted, scheme.colors[0x04]);
+                assert!(contrast(theme.muted, theme.card) >= 4.5);
                 assert_eq!(theme.card, scheme.colors[0x01]);
                 assert_eq!(theme.chip, scheme.colors[0x02]);
-                assert_eq!(theme.selected, scheme.colors[0x03]);
+                assert_eq!(theme.selected, scheme.colors[0x02]);
                 assert_eq!(theme.folder, scheme.colors[0x0D]);
                 assert_eq!(theme.nav, scheme.colors[0x00]);
                 assert_eq!(theme.shell, scheme.colors[0x00]);
@@ -470,6 +501,34 @@ mod tests {
             }
         };
         0.2126 * linear(color.r) + 0.7152 * linear(color.g) + 0.0722 * linear(color.b)
+    }
+
+    #[test]
+    fn every_preset_has_readable_body_selection_and_action_text() {
+        for palette in crate::palette::Palette::presets() {
+            let theme = SkinId::Minimal.theme().with_palette(palette.scheme());
+            let (Color::Rgb(br, bg, bb), Color::Rgb(fr, fg, fb)) = theme.action_colors() else {
+                panic!("palette actions must use RGB");
+            };
+            assert!(
+                contrast(Rgb::new(fr, fg, fb), Rgb::new(br, bg, bb)) >= 4.5,
+                "{}",
+                palette.label()
+            );
+            for (fg, bg) in [
+                (theme.ink, theme.card),
+                (theme.muted, theme.card),
+                (theme.ink, theme.selected),
+            ] {
+                let a = luminance(fg);
+                let b = luminance(bg);
+                assert!(
+                    (a.max(b) + 0.05) / (a.min(b) + 0.05) >= 4.5,
+                    "{}",
+                    palette.label()
+                );
+            }
+        }
     }
 
     #[test]

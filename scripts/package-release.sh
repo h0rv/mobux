@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-target=${1:?Usage: package-android.sh TARGET}
-case "$target" in aarch64-linux-android|x86_64-linux-android) ;; *) echo 'Unsupported target' >&2; exit 1;; esac
+target=${1:?Usage: package-release.sh TARGET}
+case "$target" in aarch64-linux-android|x86_64-linux-android|aarch64-unknown-linux-gnu|x86_64-unknown-linux-gnu|aarch64-apple-darwin|x86_64-apple-darwin) ;; *) echo 'Unsupported target' >&2; exit 1;; esac
 root=$(cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 work=$(mktemp -d)
@@ -30,5 +30,9 @@ while IFS= read -r -d '' license; do
 done < <(find assets themes -type f \( -iname '*license*' -o -iname 'OFL*' -o -name 'THIRD_PARTY.md' \) -print0)
 asset="mobux-$target.tar.gz"
 tar -czf "dist/$asset" -C "$work" mobux
-(cd dist && sha256sum "$asset" > "$asset.sha256")
+if command -v sha256sum >/dev/null; then
+    (cd dist && sha256sum "$asset" > "$asset.sha256")
+else
+    (cd dist && shasum -a 256 "$asset" > "$asset.sha256")
+fi
 printf 'Packaged %s\n' "dist/$asset"

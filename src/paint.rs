@@ -568,7 +568,7 @@ fn paint_workspace(buf: &mut Canvas<'_>, area: Rect, state: &State, theme: &Them
     let ink = theme.ink.color();
     let muted = theme.muted.color();
     let card = theme.card.color();
-    let accent = state.palette.scheme().colors[0x0B].color();
+    let (accent, action_ink) = theme.action_colors();
     put(
         buf,
         p.project.x,
@@ -653,7 +653,7 @@ fn paint_workspace(buf: &mut Canvas<'_>, area: Rect, state: &State, theme: &Them
             "Add an app"
         },
         Style::default()
-            .fg(theme.nav.color())
+            .fg(action_ink)
             .bg(accent)
             .add_modifier(Modifier::BOLD),
     );
@@ -1363,10 +1363,10 @@ fn paint_recents(buf: &mut Canvas<'_>, term_h: u16, state: &State, theme: &Theme
 }
 
 fn paint_chip(buf: &mut Canvas<'_>, rect: Rect, label: &str, on: bool, theme: &Theme) {
-    let bg = if on {
-        theme.selected.color()
+    let (bg, fg) = if on {
+        (theme.pill.color(), theme.pill_ink.color())
     } else {
-        theme.chip.color()
+        (theme.chip.color(), theme.ink.color())
     };
     fill(buf, rect, bg);
     put(
@@ -1374,7 +1374,7 @@ fn paint_chip(buf: &mut Canvas<'_>, rect: Rect, label: &str, on: bool, theme: &T
         rect.x.saturating_add(1),
         rect.y + rect.height / 2,
         label,
-        Style::default().fg(theme.ink.color()).bg(bg),
+        Style::default().fg(fg).bg(bg),
     );
 }
 
@@ -1626,8 +1626,8 @@ fn paint_install(buf: &mut Canvas<'_>, state: &State, theme: &Theme) {
         (
             state.places.install_confirm,
             "Install",
-            state.palette.scheme().colors[0x0B].color(),
-            theme.nav.color(),
+            theme.action_colors().0,
+            theme.action_colors().1,
         ),
     ] {
         buf.rounded(button, color, 0.75);

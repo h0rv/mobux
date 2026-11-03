@@ -23,7 +23,7 @@ Rust, Ratatui, and tiny-skia draw the interface. Unsafe code is forbidden.
 - `src/sessions.rs` wraps tmux 3.4 or newer on a private socket. It owns discovery, attach, restart, and stop. Generation-specific UUID names prevent numeric ID reuse. Mutations use exact session-qualified targets. Never kill unrelated sessions or a user's default server. Keep ownership metadata, readiness checks, locking, and working-directory guards.
 - `src/main.rs` owns terminal setup, the event loop, and program handoff. Restore terminal modes before attaching a child. Keep the workspace visible through session preflight and clear graphics only at ownership transfer. Batch return-to-workspace setup and its complete first frame in one synchronized update. Do not reintroduce an opening-overlay/early-clear flash. Never redraw repeatedly while idle. Ignore pointer motion for repainting. Do not reintroduce a fake shell parser or blocking command capture.
 - `src/config.rs` validates versioned settings and history. Save privately and atomically. Preserve invalid files and retry temporary save failures. Do not restore an old cwd over the startup directory.
-- `src/install.rs` contains audited host-specific package plans. Install only after explicit confirmation. Use literal argv, not shell interpolation. No remote scripts, automatic sudo, or guessed Android packages. Tests must never run a real package manager.
+- `src/install.rs` contains audited host-specific package plans. Install only after explicit confirmation. Use literal argv, not shell interpolation. App `requires` commands and `termux_package` recipes are declared in `catalog/apps.json`. micro is the preferred editor for new configurations, but it is installed only after explicit confirmation. Do not override existing editor preferences. No remote scripts, automatic sudo, or guessed Android packages. Tests must never run a real package manager.
 - `src/host.rs` resolves executable paths, including a Termux PREFIX. Do not assume Android has `/bin/sh`.
 - `src/catalog.rs` reads `catalog/apps.json`. Keep app identity, command arguments, source URLs, and compatibility notes accurate. The GitHub entry opens a CLI overview in a shell rather than disappearing after printing help.
 - `src/tree.rs` owns lazy directory expansion and cached tree projection. Failed reads or symlink ancestor cycles preserve the view. Nested expansion is limited to 32 levels and 2,000 projected rows. The initial root listing is not truncated.
@@ -51,9 +51,13 @@ mise run test-ui
 
 `check` runs formatting checks, Clippy with warnings denied, tests, and generated previews. The optimized development profile is intentional. Per-cell pixel fills and unoptimized graphics dependencies previously caused visible lag. See `PERFORMANCE.md`.
 
-The public repository is `h0rv/mobux`. GitHub Actions checks Linux and cross-compiles Android 9+ ARM64 and x86_64 snapshots. `scripts/install-termux.sh` installs published snapshots with checksums; `SETUP.md` also covers on-phone source builds. Cross-compilation does not establish physical phone compatibility.
+The public repository is `h0rv/mobux`. GitHub Actions checks Linux and publishes Android 9+, Linux, and macOS snapshots for ARM64 and x86_64. Android binaries are cross-compiled. `scripts/install-termux.sh` installs published snapshots with checksums; `SETUP.md` also covers on-phone source builds. Cross-compilation does not establish physical phone compatibility.
 
 `test-ui` requires tmux, ripgrep, and Expect. It covers nested tree expansion, fuzzy filtering, focused input, and content search as well as app switching and confirmed installation. Its servers, files, and fake package manager are private test fixtures. Never point tests at the default tmux socket. Include a native supported-terminal check after visual work. Passing unit tests does not prove that a layout looks good.
+
+## Small follow-ups
+
+Saved commands may be useful as explicit project-scoped entries with review before execution. Do not copy shell history automatically or add an LLM command-generation subsystem. Prefer optional existing tools when they solve the task.
 
 ## Previews and limits
 

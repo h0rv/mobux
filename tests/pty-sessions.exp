@@ -56,7 +56,7 @@ set failed [catch {
     send -- "5"
     await "Settings"
     for {set i 0} {$i < 6} {incr i} { send -- "\033\[B" }
-    send -- "\r"
+    send -- "\033\[C\033\[D"
     await "micro"
     set handle [open [file join $root config state.json] r]
     set config [read $handle]
